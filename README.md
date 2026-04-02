@@ -1,28 +1,3 @@
-# Avaliacao DDM - Projeto Flutter (Splash, Login, Cadastro e Home)
-
-## 1) Identificacao do grupo
-
-- Disciplina: Desenvolvimento para Dispositivos Moveis (DDM)
-- Atividade: Projeto Flutter com dados mockados em memoria
-- Integrantes:
-	- 25001227 - Isadora Cabral Dos Santos
-	- 25000019 - Joao Augusto De Freitas
-	- 25000795 - Kauan Leander Leandrini
-
-## 2) Link de entrega
-
-- Repositorio publico no GitHub: https://github.com/joaoaugusto-dev/AvaliacaoDDM-02042026
-
-## 3) Objetivo do projeto
-
-Aplicativo desenvolvido para demonstrar os conceitos da disciplina:
-
-- organizacao arquitetural (views, viewmodels, models)
-- navegacao entre telas
-- formularios com validacao
-- autenticacao simulada
-- uso de dados mockados em memoria com Model + List
-
 # Avaliação DDM — Projeto Flutter (Splash, Login, Cadastro e Home)
 
 ## 1) Identificação do grupo
