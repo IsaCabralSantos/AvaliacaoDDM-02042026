@@ -323,8 +323,7 @@ ESPAÇO PARA PRINT:
 - [x] Sem banco de dados
 - [x] Sem API externa
 - [x] Foco em arquitetura, lógica, navegação, formulários e dados em memória
-- [ ] Todos os integrantes participaram do desenvolvimento (confirmar na apresentação)
-- [ ] Projeto funcionando no momento da avaliação (confirmar no dia)
+- [X] Todos os integrantes participaram do desenvolvimento
 
 ESPAÇO PARA PRINT (execução funcionando):
 
@@ -334,8 +333,8 @@ ESPAÇO PARA PRINT (execução funcionando):
 
 ### 9.1 Itens da entrega
 
-- [ ] Link público do código-fonte no GitHub
-- [ ] Apresentação prática funcionando
+- [X] Link público do código-fonte no GitHub
+- [X] Apresentação prática funcionando (Vídeo)
 - [x] Explicação breve da arquitetura (neste README)
 
 ### 9.2 Demonstração do fluxo solicitado
