@@ -1,158 +1,89 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
-import '../../../app/core/widgets/app_background.dart';
-import '../../../app/core/widgets/glass_card.dart';
-import '../../../app/routes/app_routes.dart';
-import '../viewmodel/login_viewmodel.dart';
+import '../../../app/core/constants/app_constants.dart';
+import '../../../app/core/models/operation_result.dart';
+import '../data/user_repository.dart';
+import '../model/user_model.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, required this.viewModel});
+class LoginViewModel extends ChangeNotifier {
+  LoginViewModel({required IUserRepository repository})
+    : _repository = repository;
 
-  final LoginViewModel viewModel;
+  final IUserRepository _repository;
 
-  @override
-  State<LoginPage> createState() => _LoginPageState();
-}
+  String _email = '';
+  String _password = '';
+  bool _obscurePassword = true;
 
-class _LoginPageState extends State<LoginPage> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  bool get obscurePassword => _obscurePassword;
 
-  LoginViewModel get _viewModel => widget.viewModel;
-
-  Future<void> _submit() async {
-    final FormState? form = _formKey.currentState;
-    if (form == null || !form.validate()) {
-      return;
-    }
-
-    final result = await _viewModel.authenticate();
-
-    if (!mounted) {
-      return;
-    }
-
-    if (!result.success || result.data == null) {
-      _showMessage(result.message, isError: true);
-      return;
-    }
-
-    _showMessage(result.message);
-
-    Navigator.pushReplacementNamed(
-      context,
-      AppRoutes.home,
-      arguments: result.data!.name,
-    );
+  void updateEmail(String value) {
+    _email = value;
   }
 
-  Future<void> _openRegister() async {
-    final Object? message = await Navigator.pushNamed(
-      context,
-      AppRoutes.register,
-    );
-
-    if (!mounted) {
-      return;
-    }
-
-    if (message is String && message.trim().isNotEmpty) {
-      _showMessage(message);
-    }
+  void updatePassword(String value) {
+    _password = value;
   }
 
-  void _showMessage(String message, {bool isError = false}) {
-    final ColorScheme scheme = Theme.of(context).colorScheme;
-    final Color backgroundColor = isError
-        ? scheme.errorContainer
-        : scheme.primary;
-    final Brightness brightness = ThemeData.estimateBrightnessForColor(
-      backgroundColor,
-    );
-    final Color foregroundColor = brightness == Brightness.dark
-        ? Colors.white
-        : Colors.black;
+  void togglePasswordVisibility() {
+    _obscurePassword = !_obscurePassword;
+    notifyListeners();
+  }
 
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message, style: TextStyle(color: foregroundColor)),
-          backgroundColor: backgroundColor,
-        ),
+  String? validateEmail(String? email) {
+    final String value = (email ?? '').trim();
+    if (value.isEmpty) {
+      return 'O email é obrigatório.';
+    }
+    if (!value.contains('@')) {
+      return 'Informe um email válido.';
+    }
+    return null;
+  }
+
+  String? validatePassword(String? password) {
+    final String value = (password ?? '').trim();
+    if (value.isEmpty) {
+      return 'A senha é obrigatória.';
+    }
+    if (value.length < AppConstants.minPasswordLength) {
+      return 'Senha deve ter ao menos ${AppConstants.minPasswordLength} caracteres.';
+    }
+    return null;
+  }
+
+  Future<OperationResult<UserModel>> authenticate() async {
+    final String normalizedEmail = _email.trim().toLowerCase();
+    final String normalizedPassword = _password.trim();
+
+    final String? emailError = validateEmail(normalizedEmail);
+    if (emailError != null) {
+      return OperationResult<UserModel>(success: false, message: emailError);
+    }
+
+    final String? passwordError = validatePassword(normalizedPassword);
+    if (passwordError != null) {
+      return OperationResult<UserModel>(success: false, message: passwordError);
+    }
+
+    final UserModel? user = _repository.authenticate(
+      email: normalizedEmail,
+      password: normalizedPassword,
+    );
+
+    if (user == null) {
+      return const OperationResult<UserModel>(
+        success: false,
+        message: 'Email ou senha incorretos.',
       );
-  }
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(title: const Text('Login')),
-      body: AppBackground(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 430),
-              child: GlassCard(
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      Text(
-                        'Acesse sua conta',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 20),
-                      TextFormField(
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(labelText: 'E-mail'),
-                        onChanged: _viewModel.updateEmail,
-                        validator: _viewModel.validateEmail,
-                      ),
-                      const SizedBox(height: 12),
-                      AnimatedBuilder(
-                        animation: _viewModel,
-                        builder: (BuildContext context, Widget? child) {
-                          return TextFormField(
-                            obscureText: _viewModel.obscurePassword,
-                            decoration: InputDecoration(
-                              labelText: 'Senha',
-                              suffixIcon: IconButton(
-                                onPressed: _viewModel.togglePasswordVisibility,
-                                icon: Icon(
-                                  _viewModel.obscurePassword
-                                      ? Icons.visibility_off
-                                      : Icons.visibility,
-                                ),
-                              ),
-                            ),
-                            onChanged: _viewModel.updatePassword,
-                            validator: _viewModel.validatePassword,
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: _submit,
-                        child: const Text('Entrar'),
-                      ),
-                      TextButton(
-                        onPressed: _openRegister,
-                        child: const Text(
-                          'Não possui uma conta? Ir para cadastro!',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
+    await _repository.saveSession(user);
+
+    return OperationResult<UserModel>(
+      success: true,
+      message: 'Login realizado com sucesso.',
+      data: user,
     );
   }
 }
