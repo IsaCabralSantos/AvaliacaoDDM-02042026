@@ -1,76 +1,155 @@
 import 'package:flutter/material.dart';
 
-import '../viewmodels/login_viewmodel.dart';
+import '../../../app/core/widgets/app_background.dart';
+import '../../../app/core/widgets/glass_card.dart';
+import '../../../app/routes/app_routes.dart';
+import '../viewmodel/login_viewmodel.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({super.key, required this.viewModel});
+
+  final LoginViewModel viewModel;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _senhaController = TextEditingController();
-  final _viewModel = LoginViewModel(); // Instância da sua ViewModel
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  void _tentarLogin() {
-    if (_formKey.currentState!.validate()) {
-      bool sucesso = _viewModel.fazerLogin(
-        _emailController.text,
-        _senhaController.text,
-      );
+  LoginViewModel get _viewModel => widget.viewModel;
 
-      if (sucesso) {
-        Navigator.pushReplacementNamed(context, '/home');
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Email ou senha incorretos!'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+  Future<void> _submit() async {
+    final FormState? form = _formKey.currentState;
+    if (form == null || !form.validate()) {
+      return;
     }
+
+    final result = await _viewModel.authenticate();
+
+    if (!mounted) {
+      return;
+    }
+
+    if (!result.success || result.data == null) {
+      _showMessage(result.message, isError: true);
+      return;
+    }
+
+    _showMessage(result.message);
+
+    Navigator.pushReplacementNamed(
+      context,
+      AppRoutes.home,
+      arguments: result.data!.name,
+    );
+  }
+
+  Future<void> _openRegister() async {
+    final Object? message = await Navigator.pushNamed(
+      context,
+      AppRoutes.register,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    if (message is String && message.trim().isNotEmpty) {
+      _showMessage(message);
+    }
+  }
+
+  void _showMessage(String message, {bool isError = false}) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final Color backgroundColor = isError
+        ? scheme.errorContainer
+        : scheme.primary;
+    final Brightness brightness = ThemeData.estimateBrightnessForColor(
+      backgroundColor,
+    );
+    final Color foregroundColor = brightness == Brightness.dark
+        ? Colors.white
+        : Colors.black;
+
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message, style: TextStyle(color: foregroundColor)),
+          backgroundColor: backgroundColor,
+        ),
+      );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                "Login",
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(title: const Text('Login')),
+      body: AppBackground(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 430),
+              child: GlassCard(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      Text(
+                        'Acesse sua conta',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(labelText: 'E-mail'),
+                        onChanged: _viewModel.updateEmail,
+                        validator: _viewModel.validateEmail,
+                      ),
+                      const SizedBox(height: 12),
+                      AnimatedBuilder(
+                        animation: _viewModel,
+                        builder: (BuildContext context, Widget? child) {
+                          return TextFormField(
+                            obscureText: _viewModel.obscurePassword,
+                            decoration: InputDecoration(
+                              labelText: 'Senha',
+                              suffixIcon: IconButton(
+                                onPressed: _viewModel.togglePasswordVisibility,
+                                icon: Icon(
+                                  _viewModel.obscurePassword
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                ),
+                              ),
+                            ),
+                            onChanged: _viewModel.updatePassword,
+                            validator: _viewModel.validatePassword,
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: _submit,
+                        child: const Text('Entrar'),
+                      ),
+                      TextButton(
+                        onPressed: _openRegister,
+                        child: const Text(
+                          'Não possui uma conta? Ir para cadastro!',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator: _viewModel.validarEmail,
-              ),
-              TextFormField(
-                controller: _senhaController,
-                decoration: const InputDecoration(labelText: 'Senha'),
-                obscureText: true,
-                validator: _viewModel.validarSenha,
-              ),
-              const SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: _tentarLogin,
-                child: const Text("Entrar"),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pushNamed(context, '/signup'),
-                child: const Text("Não tem conta? Cadastre-se"),
-              ),
-            ],
+            ),
           ),
         ),
       ),
